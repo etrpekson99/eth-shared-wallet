@@ -20,8 +20,15 @@ contract SharedWallet is Ownable {
         _;
     }
 
+    function reduceAllowance(address _who, uint _amount) internal ownerOrAllowed(_amount) {
+        allowance[_who] -= _amount; // deduct withdrawn amount
+    }
+
     function withdrawMoney(address payable _to, uint _amount) public ownerOrAllowed(_amount) {
         require(_amount <= address(this).balance, "Contract doesn't own enough money");
+        if (!isOwner()) {
+            reduceAllowance(msg.sender, _amount);
+        }
         _to.transfer(_amount);
     }
 
