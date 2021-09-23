@@ -1,20 +1,27 @@
-// SPDX-License-Identifier: GPL-3.0
+//SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.5;
 
-contract SharedWallet {
-    address owner;
-    
-    constructor() {
-        owner = msg.sender; // owner is address that deployed smart contract
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
+
+contract SharedWallet is Ownable {
+    function isOwner() internal view returns(bool) {
+        return owner() == msg.sender;
     }
-    
-    modifier onlyOwner() {
-        require(msg.sender == owner, "You are not allowed");
+
+    mapping(address => uint) public allowance;
+
+    function addAllowance(address _who, uint _amount) public onlyOwner {
+        allowance[_who] = _amount;
+    }
+
+    modifier ownerOrAllowed(uint _amount) { // check if address is allowed to withdraw money
+        require(isOwner() || allowance[msg.sender] >= _amount, "You are not allowed!");
         _;
     }
 
-    function withdrawMoney(address payable _to, uint _amount) public onlyOwner { // only the owner can withdraw
+    function withdrawMoney(address payable _to, uint _amount) public ownerOrAllowed(_amount) {
+        require(_amount <= address(this).balance, "Contract doesn't own enough money");
         _to.transfer(_amount);
     }
 
